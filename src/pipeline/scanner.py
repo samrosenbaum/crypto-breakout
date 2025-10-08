@@ -3,16 +3,22 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 import numpy as np
 import pandas as pd
 import structlog
 
-from src.analysis import TechnicalAnalyzer
+from src.analysis import (
+    MarketStructureAnalyzer,
+    OnChainAnalyzer,
+    RiskAnalyzer,
+    SentimentAnalyzer,
+    TechnicalAnalyzer,
+)
 from src.adapters import BaseAdapter, get_adapter
 from src.config_loader import ConfigLoader
-from src.models import AssetSignal, TechnicalAnalysisResult
+from src.models import AssetSignal, ModuleResult, TechnicalAnalysisResult
 
 logger = structlog.get_logger()
 
@@ -34,6 +40,12 @@ class QuantScanner:
 
         technical_config = self.config.get("technical_analysis", {})
         self.technical_analyzer = TechnicalAnalyzer(technical_config)
+        self.onchain_analyzer = OnChainAnalyzer(self.config.get("onchain_analysis"))
+        self.market_structure_analyzer = MarketStructureAnalyzer(
+            self.config.get("market_structure")
+        )
+        self.sentiment_analyzer = SentimentAnalyzer(self.config.get("sentiment_analysis"))
+        self.risk_analyzer = RiskAnalyzer(self.config.get("risk_assessment"))
         self.analyzer_weights = self.config.get("analyzer_weights", {"technical": 1.0})
         self.score_ranges = self.config.get("scoring", {}).get("score_ranges", {})
 
@@ -95,9 +107,22 @@ class QuantScanner:
         if technical_score is not None:
             module_scores["technical"] = technical_score
 
+        module_results = {}
+        for name, analyzer in (
+            ("onchain", self.onchain_analyzer),
+            ("market_structure", self.market_structure_analyzer),
+            ("sentiment", self.sentiment_analyzer),
+            ("risk_assessment", self.risk_analyzer),
+        ):
+            result = self._evaluate_module(analyzer, asset)
+            if result is None:
+                continue
+            module_results[name] = result
+            module_scores[name] = result.score
+
         composite_score = self._combine_module_scores(module_scores)
         confidence = self._score_to_label(composite_score)
-        aggregated_signals = self._collect_signals(technical_results)
+        aggregated_signals = self._collect_signals(technical_results, module_results)
 
         analyzer_breakdown = {
             name: module_scores.get(name, 0.0) for name in self.analyzer_weights.keys()
@@ -122,8 +147,24 @@ class QuantScanner:
             signals=aggregated_signals,
             analyzer_breakdown=analyzer_breakdown,
             technical=technical_results,
+            modules=module_results,
             metadata=metadata,
         )
+
+    def _evaluate_module(self, analyzer, asset: Dict[str, Any]) -> Optional[ModuleResult]:
+        if analyzer is None:
+            return None
+
+        try:
+            result = analyzer.analyze(asset)
+        except Exception as exc:  # noqa: BLE001 - provide context upstream
+            logger.error("quant_scanner.module_failed", module=analyzer.__class__.__name__, error=str(exc))
+            return None
+
+        if not isinstance(result, ModuleResult):
+            return None
+
+        return result
 
     def _ohlcv_to_dataframe(self, data: Dict[str, List]) -> pd.DataFrame:
         if not data:
@@ -184,10 +225,16 @@ class QuantScanner:
 
         return weighted / total_weight
 
-    def _collect_signals(self, results: Dict[str, TechnicalAnalysisResult]) -> List[str]:
+    def _collect_signals(
+        self,
+        technical_results: Dict[str, TechnicalAnalysisResult],
+        module_results: Dict[str, ModuleResult],
+    ) -> List[str]:
         aggregated: List[str] = []
-        for timeframe, result in results.items():
+        for timeframe, result in technical_results.items():
             aggregated.extend(result.signals or [f"{timeframe} neutral"])
+        for name, result in module_results.items():
+            aggregated.extend(result.signals or [f"{name} neutral"])
         return sorted(set(aggregated))
 
     def _score_to_label(self, score: float) -> str:

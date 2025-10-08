@@ -19,6 +19,26 @@ class IndicatorScore:
 
 
 @dataclass(slots=True)
+class ModuleResult:
+    """Outcome of a non-technical analysis module."""
+
+    name: str
+    score: float
+    signals: List[str] = field(default_factory=list)
+    metrics: Dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize the module into a JSON-compatible dictionary."""
+
+        return {
+            "name": self.name,
+            "score": self.score,
+            "signals": self.signals,
+            "metrics": self.metrics,
+        }
+
+
+@dataclass(slots=True)
 class TechnicalAnalysisResult:
     """Aggregate of technical indicators for a timeframe."""
 
@@ -64,6 +84,7 @@ class AssetSignal:
     signals: List[str]
     analyzer_breakdown: Dict[str, float]
     technical: Dict[str, TechnicalAnalysisResult] = field(default_factory=dict)
+    modules: Dict[str, ModuleResult] = field(default_factory=dict)
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -81,5 +102,6 @@ class AssetSignal:
                 timeframe: result.to_dict()
                 for timeframe, result in self.technical.items()
             },
+            "modules": {name: module.to_dict() for name, module in self.modules.items()},
             "metadata": self.metadata,
         }
