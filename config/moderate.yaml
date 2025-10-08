@@ -1,0 +1,276 @@
+# Moderate Risk Profile Configuration
+# Balances opportunity and safety
+
+profile:
+  name: moderate
+  description: Balanced approach between opportunity and risk management
+  risk_tolerance: medium
+
+# Data Source Configuration
+data_sources:
+  price_data:
+    primary: coingecko
+    fallback: coinmarketcap
+    update_frequency: 60  # seconds
+
+  dex_data:
+    primary: dexscreener
+    fallback: dextools
+    update_frequency: 120
+
+  onchain_data:
+    ethereum: etherscan
+    bsc: bscscan
+    solana: solscan
+    update_frequency: 300
+
+  sentiment:
+    twitter: true
+    reddit: true
+    news: cryptopanic
+    update_frequency: 600
+
+# Asset Filtering
+filters:
+  min_market_cap: 500000  # $500k
+  max_market_cap: null  # No upper limit
+  min_liquidity: 100000  # $100k
+  min_volume_24h: 50000  # $50k
+  min_age_days: 7  # Minimum 7 days old
+  max_age_days: null
+
+  excluded_chains: []  # Include all chains
+  excluded_dexes: []  # Include all DEXs
+
+  # Rug pull red flags (auto-reject if true)
+  require_liquidity_lock: false  # Don't strictly require (warning instead)
+  require_contract_verified: true
+  max_holder_concentration: 0.5  # Top holder can't have >50%
+  blacklisted_deployers: []
+
+# Analyzer Weights (must sum to 1.0)
+analyzer_weights:
+  technical: 0.30
+  onchain: 0.25
+  market_structure: 0.20
+  sentiment: 0.15
+  risk_assessment: 0.10
+
+# Technical Analysis Configuration
+technical_analysis:
+  timeframes:
+    - 5m
+    - 15m
+    - 1h
+    - 4h
+    - 1d
+
+  indicators:
+    rsi:
+      enabled: true
+      period: 14
+      oversold: 30
+      overbought: 70
+      weight: 0.20
+
+    macd:
+      enabled: true
+      fast: 12
+      slow: 26
+      signal: 9
+      weight: 0.20
+
+    bollinger_bands:
+      enabled: true
+      period: 20
+      std_dev: 2
+      weight: 0.15
+
+    volume_analysis:
+      enabled: true
+      sma_period: 20
+      spike_threshold: 2.0  # 2x average volume
+      weight: 0.25
+
+    support_resistance:
+      enabled: true
+      lookback_periods: 100
+      weight: 0.20
+
+  pattern_detection:
+    breakouts: true
+    cup_and_handle: true
+    ascending_triangle: true
+    bull_flags: true
+
+# On-Chain Analysis Configuration
+onchain_analysis:
+  whale_tracking:
+    enabled: true
+    whale_threshold: 100000  # $100k+ transactions
+    accumulation_weight: 0.30
+
+  holder_analysis:
+    enabled: true
+    top_holders_count: 10
+    concentration_weight: 0.25
+
+  transaction_analysis:
+    enabled: true
+    velocity_weight: 0.20
+    smart_money_weight: 0.25
+
+  liquidity:
+    enabled: true
+    pool_depth_weight: 0.20
+    lock_status_weight: 0.15
+
+# Market Structure Analysis
+market_structure:
+  liquidity_metrics:
+    min_depth_usd: 50000
+    max_slippage_5k: 0.05  # 5% max slippage on $5k trade
+    weight: 0.40
+
+  exchange_distribution:
+    prefer_cex_listings: true
+    cex_weight: 0.30
+    dex_weight: 0.30
+
+# Sentiment Analysis Configuration
+sentiment_analysis:
+  twitter:
+    enabled: true
+    min_mentions: 50  # per day
+    sentiment_weight: 0.30
+    engagement_weight: 0.20
+
+  reddit:
+    enabled: true
+    tracked_subreddits:
+      - CryptoCurrency
+      - CryptoMoonShots
+      - SatoshiStreetBets
+    sentiment_weight: 0.20
+
+  news:
+    enabled: true
+    catalyst_weight: 0.30
+    sources:
+      - cryptopanic
+      - coindesk
+      - cointelegraph
+
+# Risk Assessment Configuration
+risk_assessment:
+  contract_security:
+    require_audit: false  # Warning if not audited
+    audit_weight: 0.25
+    honeypot_check: true
+    mint_function_check: true
+
+  rug_pull_indicators:
+    liquidity_lock_weight: 0.25
+    team_doxxed_weight: 0.15
+    holder_distribution_weight: 0.20
+    contract_ownership_weight: 0.15
+
+  volatility_metrics:
+    max_daily_volatility: 0.50  # 50% daily swings acceptable
+    drawdown_tolerance: 0.40  # 40% max drawdown
+    weight: 0.20
+
+# Signal Generation Rules
+signals:
+  buy_signal:
+    min_composite_score: 70  # Out of 100
+    min_confirming_modules: 3  # At least 3 modules must agree
+    required_modules:
+      - risk_assessment  # Must pass risk check
+
+    entry_timing:
+      avoid_parabolic: true  # Don't chase pumps
+      max_recent_gain_24h: 0.30  # Don't buy if up >30% in 24h
+      prefer_consolidation: true
+
+    position_sizing:
+      max_position_percent: 0.05  # Max 5% of portfolio per position
+      scale_by_confidence: true
+      confidence_tiers:
+        high: 0.05  # 75-85 score
+        medium: 0.03  # 70-75 score
+        low: 0.02  # 65-70 score
+
+  sell_signal:
+    profit_targets:
+      conservative: 0.25  # 25% gain
+      moderate: 0.50  # 50% gain
+      aggressive: 1.00  # 100% gain
+
+    stop_loss:
+      enabled: true
+      fixed_percent: 0.15  # 15% stop loss
+      trailing_enabled: true
+      trailing_percent: 0.10  # Trail by 10%
+
+    momentum_exit:
+      rsi_overbought: 80
+      volume_decline: 0.50  # Exit if volume drops 50%
+      whale_distribution: true  # Exit on large sells
+
+    time_based:
+      max_hold_days: 30  # Exit after 30 days regardless
+
+# Scoring Thresholds
+scoring:
+  score_ranges:
+    excellent: [85, 100]
+    good: [75, 85]
+    moderate: [65, 75]
+    poor: [50, 65]
+    reject: [0, 50]
+
+  output_top_n: 20  # Show top 20 opportunities
+
+# Alert Configuration
+alerts:
+  enabled: true
+  channels:
+    - telegram
+    - discord
+
+  triggers:
+    new_buy_signal: true
+    sell_signal: true
+    significant_movement: true  # >10% move
+    risk_change: true  # Risk score changes significantly
+
+  cooldown_minutes: 15  # Don't spam same asset
+
+# Performance Tracking
+tracking:
+  enabled: true
+  metrics:
+    - win_rate
+    - average_return
+    - sharpe_ratio
+    - max_drawdown
+
+  reporting:
+    daily_summary: true
+    weekly_report: true
+
+# Cache Configuration
+cache:
+  enabled: true
+  ttl_price: 60  # 1 minute
+  ttl_onchain: 300  # 5 minutes
+  ttl_sentiment: 600  # 10 minutes
+  ttl_analysis: 300  # 5 minutes
+
+# Rate Limiting
+rate_limiting:
+  coingecko_rpm: 50
+  etherscan_rps: 5
+  dexscreener_rpm: 300
+  twitter_rpm: 450

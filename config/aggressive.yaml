@@ -1,0 +1,91 @@
+# Aggressive Risk Profile Configuration
+# Focus on early-stage breakouts, accept higher risk
+
+profile:
+  name: aggressive
+  description: High-risk, high-reward approach for maximum returns
+  risk_tolerance: high
+
+data_sources:
+  price_data:
+    primary: coingecko
+    fallback: coinmarketcap
+    update_frequency: 30  # More frequent updates
+
+  dex_data:
+    primary: dexscreener
+    update_frequency: 60  # Faster updates
+
+filters:
+  min_market_cap: 100000  # $100k minimum (micro caps OK)
+  min_liquidity: 25000  # $25k minimum
+  min_volume_24h: 10000  # $10k minimum
+  min_age_days: 1  # New launches OK
+
+  require_liquidity_lock: false  # Not required
+  require_contract_verified: false  # Warning only
+  max_holder_concentration: 0.70  # Top holder can have 70%
+
+analyzer_weights:
+  technical: 0.35  # Heavy weight on technicals
+  onchain: 0.25
+  market_structure: 0.15
+  sentiment: 0.20  # Higher sentiment weight
+  risk_assessment: 0.05  # Lower risk weight
+
+technical_analysis:
+  timeframes:
+    - 1m  # Include 1-minute for scalping
+    - 5m
+    - 15m
+    - 1h
+    - 4h
+
+  indicators:
+    rsi:
+      period: 14
+      oversold: 25  # More aggressive
+      overbought: 75
+      weight: 0.20
+
+signals:
+  buy_signal:
+    min_composite_score: 65  # Lower threshold
+    min_confirming_modules: 2  # Less confirmation needed
+
+    entry_timing:
+      avoid_parabolic: false  # OK to chase momentum
+      max_recent_gain_24h: 1.00  # OK if up 100% in 24h
+      prefer_consolidation: false
+
+    position_sizing:
+      max_position_percent: 0.10  # Max 10% per position
+      confidence_tiers:
+        high: 0.10
+        medium: 0.07
+        low: 0.05
+
+  sell_signal:
+    profit_targets:
+      conservative: 0.50  # 50% gain
+      moderate: 1.00  # 100% gain
+      aggressive: 3.00  # 300% gain
+
+    stop_loss:
+      fixed_percent: 0.25  # Wider stop loss
+      trailing_percent: 0.15
+
+risk_assessment:
+  contract_security:
+    require_audit: false  # Not required
+    audit_weight: 0.10
+
+  volatility_metrics:
+    max_daily_volatility: 2.00  # 200% daily swings OK
+    drawdown_tolerance: 0.70  # 70% max drawdown
+
+scoring:
+  output_top_n: 50  # Show more opportunities
+
+alerts:
+  cooldown_minutes: 5  # More frequent alerts

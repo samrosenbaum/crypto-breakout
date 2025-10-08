@@ -1,0 +1,82 @@
+# Conservative Risk Profile Configuration
+# Focus on established coins, strong liquidity, low rug risk
+
+profile:
+  name: conservative
+  description: Risk-averse approach focusing on established assets
+  risk_tolerance: low
+
+data_sources:
+  price_data:
+    primary: coingecko
+    fallback: coinmarketcap
+    update_frequency: 60
+
+  dex_data:
+    primary: dexscreener
+    update_frequency: 120
+
+  onchain_data:
+    ethereum: etherscan
+    bsc: bscscan
+    update_frequency: 300
+
+filters:
+  min_market_cap: 10000000  # $10M minimum
+  min_liquidity: 500000  # $500k minimum
+  min_volume_24h: 200000  # $200k minimum
+  min_age_days: 90  # At least 3 months old
+
+  require_liquidity_lock: true  # Strict requirement
+  require_contract_verified: true
+  max_holder_concentration: 0.30  # Top holder max 30%
+
+analyzer_weights:
+  technical: 0.25
+  onchain: 0.20
+  market_structure: 0.25
+  sentiment: 0.10
+  risk_assessment: 0.20  # Higher weight on risk
+
+technical_analysis:
+  timeframes:
+    - 1h
+    - 4h
+    - 1d
+    - 1w  # Include weekly for stability
+
+  indicators:
+    rsi:
+      period: 14
+      oversold: 35  # More conservative
+      overbought: 65
+      weight: 0.20
+
+signals:
+  buy_signal:
+    min_composite_score: 75  # Higher threshold
+    min_confirming_modules: 4  # Require more confirmation
+
+    entry_timing:
+      max_recent_gain_24h: 0.15  # Don't buy if up >15% in 24h
+
+    position_sizing:
+      max_position_percent: 0.03  # Max 3% per position
+
+  sell_signal:
+    profit_targets:
+      conservative: 0.20  # 20% gain
+      moderate: 0.30
+      aggressive: 0.50
+
+    stop_loss:
+      fixed_percent: 0.10  # Tighter stop loss
+
+risk_assessment:
+  contract_security:
+    require_audit: true  # Must be audited
+    audit_weight: 0.35
+
+  volatility_metrics:
+    max_daily_volatility: 0.30  # 30% max daily swings
+    drawdown_tolerance: 0.25  # 25% max drawdown
