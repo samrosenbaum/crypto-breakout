@@ -264,6 +264,7 @@ class CoinGeckoAdapter(BaseAdapter):
             "high": [],
             "low": [],
             "close": [],
+            "volume": [],
         }
 
         for candle in data:
@@ -273,6 +274,11 @@ class CoinGeckoAdapter(BaseAdapter):
             ohlcv["high"].append(h)
             ohlcv["low"].append(l)
             ohlcv["close"].append(c)
+            # The OHLC endpoint does not return volume, but downstream
+            # analytics expect the key to exist. We fill with None values
+            # so analytics modules can gracefully skip volume-based signals
+            # when the data source does not provide it.
+            ohlcv["volume"].append(None)
 
         return ohlcv
 
